@@ -198,10 +198,14 @@
 
         cout << "\n=== Tambah Produk Baru ===\n";
 
-        int id = inputInt("ID Produk: ");
-        if (cariProdukById(id) != nullptr) {
-            cout << "ID sudah digunakan!\n";
-            return;
+        int jumlahInput = inputInt("Berapa banyak produk yang ingin ditambahkan? ");
+        for (int i = 0; i < jumlahInput; i++) {
+            cout << "\n=== Tambah Produk ke-" << (i + 1) << " ===\n";
+
+            int id = inputInt("ID Produk: ");
+            if (cariProdukById(id) != nullptr) {
+                cout << "ID sudah digunakan!\n";
+                return;
         }
 
         cin.ignore();
@@ -223,8 +227,8 @@
 
         tambahProduk(id, nama, stok, harga);
         cout << "Produk berhasil ditambahkan!\n";
-
     }
+}
 
     void tambahKeKeranjang(Produk* produk, int jumlah) {
         if (produk->stok < jumlah) {
