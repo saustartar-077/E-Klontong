@@ -444,7 +444,6 @@
         if (currentUser != nullptr) {
             int pilihan;
             do {
-                clearScreen();
                 
                 cout << "\n=== MENU E-Klontong ===\n";
                 cout << "1. Tampilkan Produk\n";
@@ -459,6 +458,7 @@
                 pilihan = inputInt("Pilih: ");
 
                 if (pilihan == 1) {
+                    clearScreen();
                     tampilkanProduk();
                 } else if (pilihan == 2) {
                     tampilkanProduk();
@@ -472,6 +472,7 @@
                         cout << "Produk tidak ditemukan.\n";
                     }
                 } else if (pilihan == 3) {
+                    clearScreen();
                     if (headKeranjang == nullptr) {
                         cout << "Keranjang kosong.\n";
                     } else {
@@ -493,12 +494,16 @@
                         }
                     }
                 } else if (pilihan == 4) {
+                    clearScreen();
                     tampilkanRiwayat();
                 } else if (pilihan == 5) {
+                    clearScreen();
                     inputProdukBaru();
                 } else if (pilihan == 6) {
+                    clearScreen();
                     topUpSaldo();
                 } else if (pilihan == 7) {
+                    clearScreen();
                     aturFlashSale();
                 }
 
