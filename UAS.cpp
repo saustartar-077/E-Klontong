@@ -77,8 +77,10 @@
         while (true) {
             cout << prompt;
             cin >> value;
-            if (!cin.fail()) break;
-
+            if (!cin.fail()) {
+                cin.ignore(10000, '\n');
+                break;
+            }
             cout << "Input harus berupa angka bulat!\n";
             clearInput();
         }
@@ -90,7 +92,10 @@
         while (true) {
             cout << prompt;
             cin >> value;
-            if (!cin.fail()) break;
+            if (!cin.fail()) {
+                cin.ignore(10000, '\n');
+                break;
+            }
 
             cout << "Input harus berupa angka desimal (mis. 12000.50)!\n";
             clearInput();
