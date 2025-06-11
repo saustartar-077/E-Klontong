@@ -1,2 +1,5 @@
-ID,Nama,Stok,Harga,HargaFlashSale,FlashSaleMulai,FlashSaleSelesai
-13,Mangga,30,20000,15000,1749520270,1749606670
+ID,Nama,Stok,Harga,Kategori
+4,"Mangga",30,20000,"Makanan & Minuman"
+1,"Gula",40,5000,"Makanan & Minuman"
+2,"Tepung",100,10000,"Makanan & Minuman"
+3,"Keju",50,10000,"Makanan & Minuman"
