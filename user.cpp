@@ -251,6 +251,28 @@
         cout << "Produk ditambahkan ke keranjang.\n";
     }
 
+    void tampilkanKeranjang () {
+        if (headKeranjang == nullptr) {
+            cout << "\nKeranjang kosong. \n";
+            return;
+        }
+
+        cout << "\n=== Isi Keranjang ===\n";
+        NodeKeranjang* temp = headKeranjang;
+        int total = 0;
+        while (temp != nullptr) {
+            int hargaSatuan = getHargaSekarang(*(temp ->produk));
+            int subTotal = hargaSatuan * temp->jumlah;
+            total += subTotal;
+
+            cout << "- " << temp->produk->nama << " x" << temp->jumlah << " = Rp " << subTotal << '\n';
+
+            temp = temp -> next;
+        }
+        cout << "-----------------------\n";
+        cout << "Total sementara: Rp " << total << endl;
+    }
+
     int prosesTransaksi() {
         int total = 0;
         cout << "\nStruk Transaksi:\n";
@@ -442,7 +464,7 @@
 
     int main() {
         muatProdukDariCSV();
-
+        int pilih;
         menuAuth();
 
         if (currentUser != nullptr) {
@@ -453,6 +475,7 @@
                 cout << "1. Tampilkan Produk\n";
                 cout << "2. Tambah ke Keranjang\n";
                 cout << "3. Checkout\n";
+                cout << "4. Lihat Keranjang\n";
                 cout << "4. Lihat Riwayat\n";
                 cout << "5. Tambah Produk Baru\n";
                 cout << "6. Topup Saldo\n";
@@ -475,7 +498,10 @@
                     } else {
                         cout << "Produk tidak ditemukan.\n";
                     }
-                } else if (pilihan == 3) {
+                if (pilihan == 3) {
+                    clearScreen();
+                    tampilkanKeranjang();
+                } else if (pilihan == 4) {
                     clearScreen();
                     if (headKeranjang == nullptr) {
                         cout << "Keranjang kosong.\n";
@@ -497,16 +523,16 @@
                             }
                         }
                     }
-                } else if (pilihan == 4) {
-                    clearScreen();
-                    tampilkanRiwayat();
                 } else if (pilihan == 5) {
                     clearScreen();
-                    inputProdukBaru();
+                    tampilkanRiwayat();
                 } else if (pilihan == 6) {
                     clearScreen();
-                    topUpSaldo();
+                    inputProdukBaru();
                 } else if (pilihan == 7) {
+                    clearScreen();
+                    topUpSaldo();
+                } else if (pilihan == 8) {
                     clearScreen();
                     aturFlashSale();
                 }
@@ -514,6 +540,7 @@
             } while (pilihan != 0);
         }
 
-        cout << "Terima kasih telah menggunakan aplikasi E-Klontong.\n";
+        cout << "Terima kasih telah menggunakan aplikasi E-Klontong.\n" << endl;
         return 0;
     }
+}   
