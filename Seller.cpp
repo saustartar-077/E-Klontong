@@ -1,27 +1,24 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <conio.h> // Non-standard, specific to Windows
+#include <conio.h>
 #include <fstream>
 #include <vector>
 #include <map>
-#include <sstream> // Added missing header
-#include <stack>   // NEW: Include for std::stack
+#include <sstream>
+#include <stack>
 
 using namespace std;
 
-// Constants for array sizes
 const int MAX_PRODUK = 100;
 const int MAX_USER = 100;
 
-// Predefined list of categories
 const vector<string> daftarKategoriTetap = {
     "Elektronik", "Makanan & Minuman", "Kesehatan & Kecantikan",
     "Peralatan Rumah Tangga", "Alat Tulis & Kantor", "Aksesoris & Fashion",
     "Otomotif", "Mainan & Hobi", "Buku & Edukasi", "Lainnya"
 };
 
-// Struct definition for a Product
 struct Produk {
     int id;
     string nama;
@@ -30,14 +27,12 @@ struct Produk {
     string kategori;
 };
 
-// Node for the shopping cart (Linked List)
 struct NodeKeranjang {
     Produk* produk;
     int jumlah;
     NodeKeranjang* next;
 };
 
-// Node for transaction history (Doubly Linked List)
 struct NodeRiwayat {
     double total;
     NodeKeranjang* detail;
@@ -45,22 +40,18 @@ struct NodeRiwayat {
     NodeRiwayat* prev;
 };
 
-// MODIFIED: Struct definition for a User now includes a role
 struct User {
     string username;
     string password;
     double saldo = 0;
-    string role; // Can be "Penjual" or "Pembeli"
+    string role;
 };
 
-// Struct to store cart actions for the Undo feature
 struct AksiKeranjang {
     Produk* produk;
     int jumlah;
 };
 
-
-// --- Global Variables ---
 Produk daftarProduk[MAX_PRODUK];
 int jumlahProduk = 0;
 NodeKeranjang* headKeranjang = nullptr;
@@ -70,15 +61,10 @@ User daftarUser[MAX_USER];
 int jumlahUser = 0;
 User* currentUser = nullptr;
 stack<AksiKeranjang> undoStack;
-
-// NEW: Graph data structure for recommendations
 map<int, map<int, int>> grafRekomendasi;
 
-
-// --- Forward Declarations ---
 void simpanUserKeCSV();
-
-// --- Utility Functions ---
+void tampilkanProduk();
 
 void clearInput() {
     cin.clear();
@@ -108,9 +94,6 @@ double inputDouble(string prompt) {
     }
     return value;
 }
-
-
-// --- Product and Category Management ---
 
 Produk* cariProdukById(int id) {
     for (int i = 0; i < jumlahProduk; i++) {
@@ -156,23 +139,18 @@ void simpanProdukKeCSV() {
 void muatProdukDariCSV() {
     ifstream file("produk.csv");
     if (!file.is_open()) return;
-
     string line;
     getline(file, line);
-
     jumlahProduk = 0;
     while (getline(file, line) && jumlahProduk < MAX_PRODUK) {
         if (line.empty()) continue;
-
         stringstream ss(line);
         string id_str, nama, stok_str, harga_str, kategori;
-
         getline(ss, id_str, ',');
         ss.ignore(); getline(ss, nama, '"'); ss.ignore();
         getline(ss, stok_str, ',');
         getline(ss, harga_str, ',');
         ss.ignore(); getline(ss, kategori, '"');
-
         try {
             Produk& p = daftarProduk[jumlahProduk];
             p.id = stoi(id_str);
@@ -191,27 +169,43 @@ void inputProdukBaru() {
         cout << "Database produk penuh!\n";
         return;
     }
-
     cout << "\n=== Tambah Produk Baru ===\n";
     int id = inputInt("ID Produk: ");
     if (cariProdukById(id) != nullptr) {
         cout << "ID sudah digunakan!\n";
         return;
     }
-
     cin.ignore();
     string nama;
     cout << "Nama Produk: ";
     getline(cin, nama);
-
     int stok = inputInt("Stok: ");
     int harga = inputInt("Harga: ");
     string kategori = pilihKategori();
-    
     daftarProduk[jumlahProduk] = {id, nama, stok, harga, kategori};
     jumlahProduk++;
     simpanProdukKeCSV();
     cout << "Produk berhasil ditambahkan!\n";
+}
+
+void updateStokProduk() {
+    cout << "\n=== Update Stok Produk ===\n";
+    tampilkanProduk();
+    int id = inputInt("Masukkan ID produk yang akan ditambah stoknya: ");
+    Produk* produk = cariProdukById(id);
+    if (produk == nullptr) {
+        cout << "Produk dengan ID tersebut tidak ditemukan.\n";
+        return;
+    }
+    int tambahanStok = inputInt("Masukkan jumlah stok yang akan ditambahkan: ");
+    if (tambahanStok < 0) {
+        cout << "Jumlah tambahan tidak boleh negatif.\n";
+        return;
+    }
+    produk->stok += tambahanStok;
+    simpanProdukKeCSV();
+    cout << "Stok untuk produk \"" << produk->nama << "\" berhasil diperbarui.\n";
+    cout << "Stok sekarang: " << produk->stok << endl;
 }
 
 void tampilkanProduk() {
@@ -221,7 +215,6 @@ void tampilkanProduk() {
     }
     cout << "\nDaftar Semua Produk:\n";
     cout << "-------------------------------------------------------------------------\n";
-    // FIXED: Adjusted column widths for better alignment
     cout << left << setw(5) << "ID" << setw(25) << "Nama" << setw(30) << "Kategori" << setw(10) << "Stok" << "Harga\n";
     cout << "-------------------------------------------------------------------------\n";
     for (int i = 0; i < jumlahProduk; i++) {
@@ -237,13 +230,10 @@ void tampilkanProduk() {
 void tampilkanProdukByKategori() {
     cout << "\n=== Tampilkan Produk Berdasarkan Kategori ===\n";
     string kategoriDipilih = pilihKategori();
-    
     cout << "\nMenampilkan produk untuk kategori: " << kategoriDipilih << endl;
     cout << "-------------------------------------------------------------------------\n";
-    // FIXED: Adjusted column widths for better alignment
     cout << left << setw(5) << "ID" << setw(25) << "Nama" << setw(30) << "Kategori" << setw(10) << "Stok" << "Harga\n";
     cout << "-------------------------------------------------------------------------\n";
-
     bool found = false;
     for(int i = 0; i < jumlahProduk; ++i) {
         if(daftarProduk[i].kategori == kategoriDipilih) {
@@ -255,15 +245,11 @@ void tampilkanProdukByKategori() {
             found = true;
         }
     }
-
     if (!found) {
         cout << "Tidak ada produk yang ditemukan untuk kategori ini.\n";
     }
     cout << "-------------------------------------------------------------------------\n";
 }
-
-
-// --- Cart Management ---
 
 void tambahKeKeranjang(Produk* produk, int jumlah) {
     if (jumlah <= 0) {
@@ -274,10 +260,8 @@ void tambahKeKeranjang(Produk* produk, int jumlah) {
         cout << "Stok tidak cukup! Sisa stok: " << produk->stok << endl;
         return;
     }
-
     undoStack.push({produk, jumlah});
     produk->stok -= jumlah;
-
     NodeKeranjang* temp = headKeranjang;
     while(temp != nullptr){
         if(temp->produk->id == produk->id){
@@ -287,7 +271,6 @@ void tambahKeKeranjang(Produk* produk, int jumlah) {
         }
         temp = temp->next;
     }
-
     NodeKeranjang* newNode = new NodeKeranjang{produk, jumlah, nullptr};
     if (headKeranjang == nullptr) {
         headKeranjang = newNode;
@@ -312,10 +295,8 @@ void undoAksiTerakhir() {
         cout << "Tidak ada aksi yang bisa di-undo.\n";
         return;
     }
-
     AksiKeranjang aksi = undoStack.top();
     undoStack.pop();
-
     NodeKeranjang* temp = headKeranjang;
     NodeKeranjang* prev = nullptr;
     while (temp != nullptr) {
@@ -338,7 +319,6 @@ void undoAksiTerakhir() {
     }
 }
 
-
 void hapusKeranjang() {
     while (headKeranjang != nullptr) {
         NodeKeranjang* hapus = headKeranjang;
@@ -347,9 +327,6 @@ void hapusKeranjang() {
     }
     while(!undoStack.empty()) undoStack.pop();
 }
-
-
-// --- Transaction and History ---
 
 double prosesTransaksi() {
     double total = 0;
@@ -369,18 +346,14 @@ double prosesTransaksi() {
     return total;
 }
 
-// NEW: Function to update the recommendation graph after a purchase
 void updateGrafRekomendasi(NodeKeranjang* keranjang) {
     if (keranjang == nullptr) return;
-
     vector<int> idProduk;
     NodeKeranjang* temp = keranjang;
     while (temp != nullptr) {
         idProduk.push_back(temp->produk->id);
         temp = temp->next;
     }
-    
-    // For every pair of items in the cart, increment their co-purchase score
     for (size_t i = 0; i < idProduk.size(); i++) {
         for (size_t j = i + 1; j < idProduk.size(); j++) {
             grafRekomendasi[idProduk[i]][idProduk[j]]++;
@@ -389,15 +362,10 @@ void updateGrafRekomendasi(NodeKeranjang* keranjang) {
     }
 }
 
-
 void simpanRiwayat(double total) {
     if (headKeranjang == nullptr) return;
-
-    // The graph must be updated BEFORE the cart is moved to history
     updateGrafRekomendasi(headKeranjang);
-
     NodeRiwayat* newNode = new NodeRiwayat{total, headKeranjang, nullptr, nullptr};
-
     if (tailRiwayat == nullptr) {
         headRiwayat = tailRiwayat = newNode;
     } else {
@@ -405,7 +373,6 @@ void simpanRiwayat(double total) {
         newNode->prev = tailRiwayat;
         tailRiwayat = newNode;
     }
-
     headKeranjang = nullptr;
     while(!undoStack.empty()) undoStack.pop();
 }
@@ -418,7 +385,6 @@ void tampilkanRiwayat() {
     }
     NodeRiwayat* temp = headRiwayat;
     int no = 1;
-
     while (temp != nullptr) {
         cout << "--- Transaksi #" << no++ << " ---\n";
         cout << "Total: Rp " << fixed << setprecision(0) << temp->total << endl;
@@ -433,27 +399,19 @@ void tampilkanRiwayat() {
     }
 }
 
-
-// --- Recommendation System (Graph-based) ---
-
 void tampilkanRekomendasi() {
     cout << "\n=== Rekomendasi Produk Berdasarkan Pembelian Bersama ===\n";
     int idProduk = inputInt("Masukkan ID produk untuk melihat rekomendasi: ");
-    
     Produk* p = cariProdukById(idProduk);
     if (!p) {
         cout << "Produk dengan ID " << idProduk << " tidak ditemukan.\n";
         return;
     }
-
     cout << "\nProduk yang sering dibeli bersama \"" << p->nama << "\":\n";
-
     if (grafRekomendasi.find(idProduk) == grafRekomendasi.end() || grafRekomendasi[idProduk].empty()) {
         cout << "Belum ada data rekomendasi untuk produk ini.\n";
         return;
     }
-
-    // The map automatically stores related products for the given ID
     for (auto const& [relatedId, score] : grafRekomendasi[idProduk]) {
         Produk* recProduk = cariProdukById(relatedId);
         if (recProduk) {
@@ -462,16 +420,13 @@ void tampilkanRekomendasi() {
     }
 }
 
-
-// --- User Authentication & Profile ---
-
 void simpanUserKeCSV() {
     ofstream file("users.csv");
     if (!file.is_open()) {
         cout << "Gagal membuka file users!\n";
         return;
     }
-    file << "Username,Password,Saldo,Role\n"; // Added Role column
+    file << "Username,Password,Saldo,Role\n";
     for (int i = 0; i < jumlahUser; i++) {
         file << daftarUser[i].username << ","
              << daftarUser[i].password << ","
@@ -484,22 +439,17 @@ void simpanUserKeCSV() {
 void muatUserDariCSV() {
     ifstream file("users.csv");
     if (!file.is_open()) return;
-
     string line;
     getline(file, line);
-
     jumlahUser = 0;
     while (getline(file, line) && jumlahUser < MAX_USER) {
         if (line.empty()) continue;
-        
         stringstream ss(line);
         string username, password, saldo_str, role;
-        
         getline(ss, username, ',');
         getline(ss, password, ',');
         getline(ss, saldo_str, ',');
-        getline(ss, role); // Read role
-        
+        getline(ss, role);
         try {
             daftarUser[jumlahUser] = {username, password, stod(saldo_str), role};
             jumlahUser++;
@@ -507,7 +457,6 @@ void muatUserDariCSV() {
     }
     file.close();
 }
-
 
 string inputPassword(const string& prompt) {
     string password;
@@ -535,24 +484,19 @@ void registerUser() {
     }
     cout << "\n=== Register ===\n";
     string username, password, role;
-
     cout << "Username: ";
     cin >> username;
-
     for (int i = 0; i < jumlahUser; i++) {
         if (daftarUser[i].username == username) {
             cout << "Username sudah digunakan!\n";
             return;
         }
     }
-
     password = inputPassword("Password (min 8 karakter): ");
     if (password.length() < 8) {
         cout << "Password harus minimal 8 karakter!\n";
         return;
     }
-
-    // MODIFIED: Role selection during registration
     cout << "\nDaftar sebagai:\n1. Penjual\n2. Pembeli\n";
     int roleChoice;
     do {
@@ -561,8 +505,6 @@ void registerUser() {
         else if (roleChoice == 2) role = "Pembeli";
         else cout << "Pilihan tidak valid.\n";
     } while (roleChoice != 1 && roleChoice != 2);
-
-
     daftarUser[jumlahUser++] = {username, password, 0, role};
     simpanUserKeCSV();
     cout << "Akun berhasil dibuat! Silakan login.\n";
@@ -571,11 +513,9 @@ void registerUser() {
 void login() {
     cout << "\n=== Login ===\n";
     string username, password;
-
     cout << "Username: ";
     cin >> username;
     password = inputPassword("Password: ");
-
     for (int i = 0; i < jumlahUser; i++) {
         if (daftarUser[i].username == username && daftarUser[i].password == password) {
             currentUser = &daftarUser[i];
@@ -583,7 +523,6 @@ void login() {
             return;
         }
     }
-
     cout << "Username atau password salah.\n";
     currentUser = nullptr;
 }
@@ -602,7 +541,6 @@ void menuAuth() {
         cout << "2. Register\n";
         cout << "0. Keluar Program\n";
         pilih = inputInt("Pilih: ");
-
         if (pilih == 1) {
             login();
         } else if (pilih == 2) {
@@ -610,7 +548,6 @@ void menuAuth() {
         } else if (pilih == 0) {
             return;
         }
-        
     } while (currentUser == nullptr);
 }
 
@@ -625,22 +562,17 @@ void topUpSaldo() {
     cout << "Topup berhasil! Saldo sekarang: Rp " << fixed << setprecision(0) << currentUser->saldo << endl;
 }
 
-// NEW: Functions for profile management
 void gantiUsername() {
     cout << "\n--- Ganti Username ---\n";
     cout << "Masukkan username baru: ";
     string newUsername;
     cin >> newUsername;
-
-    // Check for duplicates
     for(int i = 0; i < jumlahUser; ++i) {
-        // Make sure we are not comparing the user to themselves
         if(&daftarUser[i] != currentUser && daftarUser[i].username == newUsername) {
             cout << "Username sudah digunakan. Silakan pilih yang lain.\n";
             return;
         }
     }
-
     currentUser->username = newUsername;
     simpanUserKeCSV();
     cout << "Username berhasil diubah menjadi: " << newUsername << endl;
@@ -649,29 +581,24 @@ void gantiUsername() {
 void gantiPassword() {
     cout << "\n--- Ganti Password ---\n";
     string oldPassword = inputPassword("Masukkan password lama Anda: ");
-
     if (oldPassword != currentUser->password) {
         cout << "Password lama salah!\n";
         return;
     }
-
     string newPassword = inputPassword("Masukkan password baru (min 8 karakter): ");
     if(newPassword.length() < 8) {
         cout << "Password baru harus minimal 8 karakter!\n";
         return;
     }
-    
     string confirmPassword = inputPassword("Konfirmasi password baru: ");
     if(newPassword != confirmPassword) {
         cout << "Konfirmasi password tidak cocok!\n";
         return;
     }
-
     currentUser->password = newPassword;
     simpanUserKeCSV();
     cout << "Password berhasil diubah.\n";
 }
-
 
 void menuProfil() {
     int pilihan;
@@ -685,22 +612,16 @@ void menuProfil() {
         cout << "2. Ganti Password\n";
         cout << "0. Kembali ke Menu Utama\n";
         pilihan = inputInt("Pilih: ");
-
         if (pilihan == 1) {
             gantiUsername();
         } else if (pilihan == 2) {
             gantiPassword();
         }
-
     } while (pilihan != 0);
 }
 
-
-// --- Main Program Loop ---
-
 void mainLoop() {
     while(currentUser != nullptr) {
-        // SHARED ACTION LOGIC
         auto handleBuyerActions = [&](int pilihan) {
             if (pilihan == 1) tampilkanProduk();
             else if (pilihan == 2) tampilkanProdukByKategori();
@@ -729,7 +650,7 @@ void mainLoop() {
                         cin >> konfirmasi;
                         if (konfirmasi == "y" || konfirmasi == "Y") {
                             currentUser->saldo -= total;
-                            simpanRiwayat(total); // This now also updates the graph
+                            simpanRiwayat(total);
                             simpanProdukKeCSV();
                             simpanUserKeCSV();
                             cout << "Checkout berhasil. Sisa saldo: Rp " << fixed << setprecision(0) << currentUser->saldo << endl;
@@ -760,9 +681,9 @@ void mainLoop() {
             cout << "9. Lihat Profil\n";
             cout << "--- Fitur Penjual ---\n";
             cout << "10. Tambah Produk Baru\n";
+            cout << "11. Update Stok Produk\n";
             cout << "---------------------\n";
             cout << "0. Logout\n";
-
             int pilihan = inputInt("Pilih: ");
             if (pilihan >= 1 && pilihan <= 8) {
                 handleBuyerActions(pilihan);
@@ -770,12 +691,13 @@ void mainLoop() {
                 menuProfil();
             } else if (pilihan == 10) {
                 inputProdukBaru();
+            } else if (pilihan == 11) {
+                updateStokProduk();
             } else if (pilihan == 0) {
                 logout();
                 break;
             }
-
-        } else { // Role is "Pembeli"
+        } else {
             cout << "\n=== MENU PEMBELI ===\n";
             cout << "Saldo: Rp " << fixed << setprecision(0) << currentUser->saldo << endl;
             cout << "------------------------\n";
@@ -789,7 +711,6 @@ void mainLoop() {
             cout << "8. Topup Saldo\n";
             cout << "9. Lihat Profil\n";
             cout << "0. Logout\n";
-
             int pilihan = inputInt("Pilih: ");
             if (pilihan >= 1 && pilihan <= 8) {
                 handleBuyerActions(pilihan);
@@ -803,21 +724,18 @@ void mainLoop() {
     }
 }
 
-
 int main() {
     muatProdukDariCSV();
     muatUserDariCSV();
-    
     while(true) {
         if(currentUser == nullptr) {
             menuAuth();
             if(currentUser == nullptr) {
-                break; // User chose to exit program from auth menu
+                break;
             }
         }
-        mainLoop(); // Enter the main application loop based on role
+        mainLoop();
     }
-
     cout << "\nTerima kasih telah menggunakan aplikasi E-Klontong.\n";
     return 0;
 }
