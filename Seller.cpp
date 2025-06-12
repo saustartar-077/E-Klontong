@@ -71,6 +71,9 @@ int jumlahUser = 0;
 User* currentUser = nullptr;
 stack<AksiKeranjang> undoStack;
 
+// NEW: Graph data structure for recommendations
+map<int, map<int, int>> grafRekomendasi;
+
 
 // --- Forward Declarations ---
 void simpanUserKeCSV();
@@ -217,17 +220,18 @@ void tampilkanProduk() {
         return;
     }
     cout << "\nDaftar Semua Produk:\n";
-    cout << "-------------------------------------------------------------------\n";
-    cout << left << setw(5) << "ID" << setw(25) << "Nama" << setw(20) << "Kategori" << setw(10) << "Stok" << "Harga\n";
-    cout << "-------------------------------------------------------------------\n";
+    cout << "-------------------------------------------------------------------------\n";
+    // FIXED: Adjusted column widths for better alignment
+    cout << left << setw(5) << "ID" << setw(25) << "Nama" << setw(30) << "Kategori" << setw(10) << "Stok" << "Harga\n";
+    cout << "-------------------------------------------------------------------------\n";
     for (int i = 0; i < jumlahProduk; i++) {
         cout << left << setw(5) << daftarProduk[i].id
              << setw(25) << daftarProduk[i].nama
-             << setw(20) << daftarProduk[i].kategori
+             << setw(30) << daftarProduk[i].kategori
              << setw(10) << daftarProduk[i].stok
              << "Rp " << fixed << setprecision(0) << daftarProduk[i].harga << endl;
     }
-    cout << "-------------------------------------------------------------------\n";
+    cout << "-------------------------------------------------------------------------\n";
 }
 
 void tampilkanProdukByKategori() {
@@ -235,16 +239,17 @@ void tampilkanProdukByKategori() {
     string kategoriDipilih = pilihKategori();
     
     cout << "\nMenampilkan produk untuk kategori: " << kategoriDipilih << endl;
-    cout << "-------------------------------------------------------------------\n";
-    cout << left << setw(5) << "ID" << setw(25) << "Nama" << setw(20) << "Kategori" << setw(10) << "Stok" << "Harga\n";
-    cout << "-------------------------------------------------------------------\n";
+    cout << "-------------------------------------------------------------------------\n";
+    // FIXED: Adjusted column widths for better alignment
+    cout << left << setw(5) << "ID" << setw(25) << "Nama" << setw(30) << "Kategori" << setw(10) << "Stok" << "Harga\n";
+    cout << "-------------------------------------------------------------------------\n";
 
     bool found = false;
     for(int i = 0; i < jumlahProduk; ++i) {
         if(daftarProduk[i].kategori == kategoriDipilih) {
             cout << left << setw(5) << daftarProduk[i].id
                  << setw(25) << daftarProduk[i].nama
-                 << setw(20) << daftarProduk[i].kategori
+                 << setw(30) << daftarProduk[i].kategori
                  << setw(10) << daftarProduk[i].stok
                  << "Rp " << fixed << setprecision(0) << daftarProduk[i].harga << endl;
             found = true;
@@ -254,7 +259,7 @@ void tampilkanProdukByKategori() {
     if (!found) {
         cout << "Tidak ada produk yang ditemukan untuk kategori ini.\n";
     }
-    cout << "-------------------------------------------------------------------\n";
+    cout << "-------------------------------------------------------------------------\n";
 }
 
 
@@ -364,8 +369,33 @@ double prosesTransaksi() {
     return total;
 }
 
+// NEW: Function to update the recommendation graph after a purchase
+void updateGrafRekomendasi(NodeKeranjang* keranjang) {
+    if (keranjang == nullptr) return;
+
+    vector<int> idProduk;
+    NodeKeranjang* temp = keranjang;
+    while (temp != nullptr) {
+        idProduk.push_back(temp->produk->id);
+        temp = temp->next;
+    }
+    
+    // For every pair of items in the cart, increment their co-purchase score
+    for (size_t i = 0; i < idProduk.size(); i++) {
+        for (size_t j = i + 1; j < idProduk.size(); j++) {
+            grafRekomendasi[idProduk[i]][idProduk[j]]++;
+            grafRekomendasi[idProduk[j]][idProduk[i]]++;
+        }
+    }
+}
+
+
 void simpanRiwayat(double total) {
     if (headKeranjang == nullptr) return;
+
+    // The graph must be updated BEFORE the cart is moved to history
+    updateGrafRekomendasi(headKeranjang);
+
     NodeRiwayat* newNode = new NodeRiwayat{total, headKeranjang, nullptr, nullptr};
 
     if (tailRiwayat == nullptr) {
@@ -404,58 +434,31 @@ void tampilkanRiwayat() {
 }
 
 
-// --- Recommendation System ---
-
-void cetakRekomendasiBerdasarkanKategori(string kategori, int& count, int limit, const map<int, bool>& itemDibeli) {
-    if(kategori.empty()) return;
-    cout << "\n--- Rekomendasi dari kategori \"" << kategori << "\" ---\n";
-    bool found = false;
-    for(int i = 0; i < jumlahProduk && count < limit; ++i) {
-        if(daftarProduk[i].kategori == kategori && itemDibeli.find(daftarProduk[i].id) == itemDibeli.end()) {
-            cout << "- " << daftarProduk[i].nama << " (Rp " << daftarProduk[i].harga << ")\n";
-            count++;
-            found = true;
-        }
-    }
-    if(!found){
-        cout << "Tidak ada produk lain di kategori ini.\n";
-    }
-}
+// --- Recommendation System (Graph-based) ---
 
 void tampilkanRekomendasi() {
-    cout << "\n=== Rekomendasi Produk Untuk Anda ===\n";
-    if(tailRiwayat == nullptr) {
-        cout << "Anda belum memiliki riwayat transaksi untuk kami berikan rekomendasi.\n";
+    cout << "\n=== Rekomendasi Produk Berdasarkan Pembelian Bersama ===\n";
+    int idProduk = inputInt("Masukkan ID produk untuk melihat rekomendasi: ");
+    
+    Produk* p = cariProdukById(idProduk);
+    if (!p) {
+        cout << "Produk dengan ID " << idProduk << " tidak ditemukan.\n";
         return;
     }
 
-    string kategoriTerakhir = "";
-    string kategoriKeduaTerakhir = "";
-    map<int, bool> itemSudahDibeli;
+    cout << "\nProduk yang sering dibeli bersama \"" << p->nama << "\":\n";
 
-    NodeRiwayat* lastPurchase = tailRiwayat;
-    if(lastPurchase && lastPurchase->detail) {
-        kategoriTerakhir = lastPurchase->detail->produk->kategori;
-        NodeKeranjang* temp = lastPurchase->detail;
-        while(temp) { itemSudahDibeli[temp->produk->id] = true; temp = temp->next; }
+    if (grafRekomendasi.find(idProduk) == grafRekomendasi.end() || grafRekomendasi[idProduk].empty()) {
+        cout << "Belum ada data rekomendasi untuk produk ini.\n";
+        return;
     }
 
-    NodeRiwayat* secondLastPurchase = tailRiwayat->prev;
-    if(secondLastPurchase && secondLastPurchase->detail) {
-        kategoriKeduaTerakhir = secondLastPurchase->detail->produk->kategori;
-        NodeKeranjang* temp = secondLastPurchase->detail;
-        while(temp) { itemSudahDibeli[temp->produk->id] = true; temp = temp->next; }
-    }
-    
-    int count = 0;
-    cetakRekomendasiBerdasarkanKategori(kategoriTerakhir, count, 5, itemSudahDibeli);
-
-    if (kategoriKeduaTerakhir != "" && kategoriKeduaTerakhir != kategoriTerakhir) {
-       cetakRekomendasiBerdasarkanKategori(kategoriKeduaTerakhir, count, 10, itemSudahDibeli);
-    }
-
-    if (count == 0) {
-        cout << "Tidak dapat menemukan rekomendasi yang cocok saat ini.\n";
+    // The map automatically stores related products for the given ID
+    for (auto const& [relatedId, score] : grafRekomendasi[idProduk]) {
+        Produk* recProduk = cariProdukById(relatedId);
+        if (recProduk) {
+            cout << "- " << recProduk->nama << " (Skor: " << score << ")\n";
+        }
     }
 }
 
@@ -726,7 +729,7 @@ void mainLoop() {
                         cin >> konfirmasi;
                         if (konfirmasi == "y" || konfirmasi == "Y") {
                             currentUser->saldo -= total;
-                            simpanRiwayat(total);
+                            simpanRiwayat(total); // This now also updates the graph
                             simpanProdukKeCSV();
                             simpanUserKeCSV();
                             cout << "Checkout berhasil. Sisa saldo: Rp " << fixed << setprecision(0) << currentUser->saldo << endl;
